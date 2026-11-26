@@ -31,7 +31,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	handler := api.New(cfg, logger)
+	handler, err := api.New(cfg, logger)
+	if err != nil {
+		logger.Error("create API server", "error", err)
+		os.Exit(1)
+	}
 	handler.Start(ctx)
 
 	srv := &http.Server{

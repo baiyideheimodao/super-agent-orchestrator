@@ -82,14 +82,29 @@ func (m *Manager) CreateRun(goal string, settingsOverride *Settings) (*RunView, 
 		attempts:  make(map[string]int),
 		inFlight:  make(map[string]string),
 	}
+	root := &Agent{
+		ID:        newID("ag"),
+		RunID:     run.ID,
+		Role:      "showrunner",
+		Task:      run.Goal,
+		Context:   ContextPacket{Goal: run.Goal, Constraints: []string{"遵守系统预算、深度与并发限制"}},
+		Depth:     0,
+		Status:    StatusQueued,
+		CreatedAt: now,
+		IsRoot:    true,
+	}
+	run.RootAgentID = root.ID
+	run.Agents[root.ID] = root
+	run.Order = append(run.Order, root.ID)
+
 	m.mu.Lock()
 	m.runs[run.ID] = run
 	m.mu.Unlock()
 
 	m.emit(run.ID, "", "run.created", map[string]any{
-		"goal":     goal,
-		"settings": settings,
+		"goal": goal, "settings": settings, "root_agent_id": root.ID,
 	})
+	m.emit(run.ID, root.ID, "agent.created", agentEventData(root))
 	go m.execute(run)
 	view, ok := m.GetRun(run.ID)
 	if !ok {
@@ -241,6 +256,10 @@ func (m *Manager) execute(run *Run) {
 		run.Status = StatusCancelled
 		run.EndedAt = &ended
 		run.Error = "任务在启动前被取消"
+		if root := run.Agents[run.RootAgentID]; root != nil {
+			root.Status = StatusCancelled
+			root.EndedAt = &ended
+		}
 		run.FinalAnswer = partialAnswer(run)
 		view := snapshotRun(run)
 		m.mu.Unlock()
@@ -253,24 +272,15 @@ func (m *Manager) execute(run *Run) {
 	run.cancel = cancel
 	run.StartedAt = &started
 	run.Status = StatusRunning
-	root := &Agent{
-		ID:        newID("ag"),
-		RunID:     run.ID,
-		Role:      "showrunner",
-		Task:      run.Goal,
-		Context:   ContextPacket{Goal: run.Goal, Constraints: []string{"遵守系统预算、深度与并发限制"}},
-		Depth:     0,
-		Status:    StatusQueued,
-		CreatedAt: started,
-		IsRoot:    true,
+	root := run.Agents[run.RootAgentID]
+	if root == nil {
+		m.mu.Unlock()
+		cancel()
+		return
 	}
-	run.RootAgentID = root.ID
-	run.Agents[root.ID] = root
-	run.Order = append(run.Order, root.ID)
 	m.mu.Unlock()
 
 	m.emit(run.ID, "", "run.started", map[string]any{"root_agent_id": root.ID})
-	m.emit(run.ID, root.ID, "agent.created", agentEventData(root))
 	go m.monitor(run)
 
 	result, execErr := m.runAgent(ctx, run, root)
