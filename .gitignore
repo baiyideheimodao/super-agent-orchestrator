@@ -1,0 +1,26 @@
+# Local secrets and runtime state
+.env
+.env.local
+data/
+runs/
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.vite/
+npm-debug.log*
+
+# Build output
+bin/
+super-agent-orchestrator
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Test output
+coverage.out
+*.test
+
+.cache/
