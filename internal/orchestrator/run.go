@@ -71,8 +71,8 @@ func (m *Manager) runAgent(ctx context.Context, run *Run, agent *Agent) (*AgentR
 			return nil, m.failAgent(run, agent, code, "剩余 token 预算不足以下一次模型调用", false)
 		}
 		maxOut := remaining / 2
-		if maxOut > 1024 {
-			maxOut = 1024
+		if maxOut > 2048 {
+			maxOut = 2048
 		}
 		if maxOut < 128 {
 			maxOut = 128

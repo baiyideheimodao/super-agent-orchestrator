@@ -69,11 +69,14 @@ type mockToolResult struct {
 func mockShowrunner(req ChatRequest, step int) ChatResponse {
 	results := mockResults(req.Messages)
 	completed := make(map[string][]mockToolResult)
-	failed := make(map[string]mockToolResult)
 	for _, result := range results {
 		if result.OK {
 			completed[result.Role] = append(completed[result.Role], result)
-		} else {
+		}
+	}
+	failed := make(map[string]mockToolResult)
+	for _, result := range results {
+		if !result.OK && len(completed[result.Role]) == 0 {
 			failed[result.Role] = result
 		}
 	}
@@ -259,9 +262,13 @@ func finalAnswer(completed map[string][]mockToolResult, partial bool) string {
 		}
 		b.WriteString("【" + label.title + "】\n")
 		for _, item := range items {
-			b.WriteString("- " + item.Summary + "\n")
 			if label.role == "writer" {
-				b.WriteString("  " + firstLine(item.Artifact) + "\n")
+				b.WriteString(">" + truncate(item.Task, 120) + "\n")
+			}
+			if strings.TrimSpace(item.Artifact) != "" {
+				b.WriteString(item.Artifact + "\n")
+			} else {
+				b.WriteString(item.Summary + "\n")
 			}
 		}
 		b.WriteString("\n")

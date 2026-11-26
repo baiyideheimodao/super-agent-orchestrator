@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/baiyideheimodao/super-agent-orchestrator/internal/config"
+	"github.com/baiyideheimodao/super-agent-orchestrator/internal/orchestrator"
 	"github.com/baiyideheimodao/super-agent-orchestrator/internal/stream"
 )
 
@@ -21,27 +22,42 @@ type Server struct {
 	startedAt time.Time
 	log       *slog.Logger
 	hub       *stream.Hub
+	manager   *orchestrator.Manager
 }
 
-func New(cfg config.Config, logger *slog.Logger) *Server {
+func New(cfg config.Config, logger *slog.Logger) (*Server, error) {
 	if logger == nil {
 		logger = slog.Default()
+	}
+	hub := stream.NewHub()
+	manager, err := orchestrator.NewManager(cfg, hub, logger)
+	if err != nil {
+		return nil, fmt.Errorf("create orchestrator: %w", err)
 	}
 	s := &Server{
 		cfg:       cfg,
 		mux:       http.NewServeMux(),
 		startedAt: time.Now().UTC(),
 		log:       logger,
-		hub:       stream.NewHub(),
+		hub:       hub,
+		manager:   manager,
 	}
 	s.routes()
-	return s
+	return s, nil
 }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
+	s.mux.HandleFunc("GET /api/config", s.handleConfig)
+	s.mux.HandleFunc("POST /api/runs", s.handleCreateRun)
+	s.mux.HandleFunc("GET /api/runs", s.handleListRuns)
+	s.mux.HandleFunc("GET /api/runs/{id}", s.handleGetRun)
+	s.mux.HandleFunc("GET /api/runs/{id}/agents/{agentID}", s.handleGetAgent)
+	s.mux.HandleFunc("PATCH /api/runs/{id}/settings", s.handleUpdateSettings)
+	s.mux.HandleFunc("POST /api/runs/{id}/fail-next", s.handleFailNext)
+	s.mux.HandleFunc("POST /api/runs/{id}/cancel", s.handleCancel)
 	s.mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

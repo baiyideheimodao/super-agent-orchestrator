@@ -3,7 +3,6 @@ package api
 import (
 	"bufio"
 	"context"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestSSETicksHaveIncreasingIDs(t *testing.T) {
-	s := New(testConfig(), slog.Default())
+	s := newTestServer(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s.Start(ctx)
@@ -57,7 +56,7 @@ func TestSSETicksHaveIncreasingIDs(t *testing.T) {
 }
 
 func TestSSEReplaysAfterLastEventID(t *testing.T) {
-	s := New(testConfig(), slog.Default())
+	s := newTestServer(t)
 	for i := 0; i < 3; i++ {
 		s.hub.Publish("unit", "run-1", "", map[string]int{"i": i})
 	}

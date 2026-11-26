@@ -2,10 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/baiyideheimodao/super-agent-orchestrator/internal/config"
 )
@@ -15,17 +17,27 @@ func testConfig() config.Config {
 		Addr:    ":0",
 		Version: "test",
 		LLM: config.LLMConfig{
-			Provider: "mock", MaxConcurrency: 2, Timeout: 1, MaxOutputTokens: 128,
+			Provider: "mock", Model: "mock-model", MaxConcurrency: 4, Timeout: 3 * time.Second,
+			MaxOutputTokens: 2048, MockStepLatencyMS: 0,
 		},
 		Runtime: config.RuntimeConfig{
-			MaxTokens: 1000, MaxDuration: 1, MaxDepth: 2, MaxConcurrency: 2,
-			MaxAgents: 10, AgentMaxSteps: 3, MaxContextChars: 500,
+			MaxTokens: 60000, MaxDuration: 60 * time.Second, MaxDepth: 2, MaxConcurrency: 4,
+			MaxAgents: 20, AgentMaxSteps: 8, MaxContextChars: 6000,
 		},
 	}
 }
 
+func newTestServer(t *testing.T) *Server {
+	t.Helper()
+	s, err := New(testConfig(), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
 func TestHealth(t *testing.T) {
-	s := New(testConfig(), slog.New(slog.NewTextHandler(httptest.NewRecorder(), nil)))
+	s := newTestServer(t)
 	for _, path := range []string{"/health", "/api/health"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rec := httptest.NewRecorder()
@@ -44,7 +56,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestUnknownPathIs404(t *testing.T) {
-	s := New(testConfig(), slog.Default())
+	s := newTestServer(t)
 	req := httptest.NewRequest(http.MethodGet, "/does-not-exist", nil)
 	rec := httptest.NewRecorder()
 	s.ServeHTTP(rec, req)

@@ -153,9 +153,9 @@ func snapshotAgentDetail(agent *Agent) AgentDetail {
 	detail := AgentDetail{
 		AgentView: snapshotAgent(agent),
 		Context:   agent.Context,
-		Messages:  append([]llm.Message(nil), agent.Messages...),
-		Calls:     append([]llm.CallRecord(nil), agent.Calls...),
-		Tools:     append([]ToolTrace(nil), agent.Tools...),
+		Messages:  append([]llm.Message{}, agent.Messages...),
+		Calls:     append([]llm.CallRecord{}, agent.Calls...),
+		Tools:     append([]ToolTrace{}, agent.Tools...),
 	}
 	if agent.Result != nil {
 		result := *agent.Result

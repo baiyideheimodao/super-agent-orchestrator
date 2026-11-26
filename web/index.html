@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
-    <title>Super-Agent 编排器</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Super-Agent 运行时编排器</title>
   </head>
   <body>
     <div id="app">
@@ -13,46 +14,128 @@
           <span class="brand-mark">SA</span>
           <div>
             <h1>Super-Agent</h1>
-            <p>运行时多智能体编排</p>
+            <p>运行时规划 · 独立上下文 · 可审计</p>
+          </div>
+        </div>
+        <div class="budget-area">
+          <div class="budget-row">
+            <span id="run-status" class="pill pill-muted">尚未运行</span>
+            <span class="budget-label">总预算</span>
+            <strong id="budget-text">0 / 60,000 tokens</strong>
+            <span id="budget-percent" class="budget-percent">0%</span>
+            <span id="cost-text" class="muted">$0.0000</span>
+            <span id="elapsed-text" class="muted">0ms</span>
+          </div>
+          <div class="budget-track" aria-hidden="true">
+            <div id="budget-fill" class="budget-fill"></div>
+            <div class="budget-reserve" title="保留 15% 收尾预算"></div>
           </div>
         </div>
         <div class="live-meta">
-          <span id="health" class="pill pill-muted">连接后端…</span>
+          <span id="health" class="pill pill-muted">后端连接中…</span>
           <span class="pill"><span class="dot" id="sse-dot"></span> SSE <b id="sse-seq">—</b></span>
-          <span class="pill" id="sse-state">连接中</span>
+          <span id="sse-state" class="pill pill-muted">连接中</span>
         </div>
       </header>
-      <main class="layout">
+
+      <main class="workspace">
         <aside class="panel controls">
-          <h2>调试面板</h2>
-          <p class="muted">编排器接入后，这里会提供预算、深度、并发、失败注入和取消控制。</p>
-          <div class="empty-slot">等待编排器 API</div>
+          <section class="control-section">
+            <div class="section-head">
+              <h2>任务</h2>
+              <span id="provider-label" class="badge">mock</span>
+            </div>
+            <textarea id="goal" rows="6" spellcheck="false">为一部 10 集竖屏悬疑短剧《回声》完成完整策划：核心谜题、人物关系、分集大纲、审稿意见和上线营销方案。每集 45–60 秒，最终反转必须能在前三集找到可回看线索。</textarea>
+            <div class="button-row">
+              <button id="start-btn" class="primary" type="button">启动演示任务</button>
+              <button id="cancel-btn" class="danger" type="button" disabled>取消整个任务</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <div class="section-head">
+              <h2>运行限制</h2>
+              <button id="apply-btn" class="ghost small" type="button" disabled>应用设置</button>
+            </div>
+            <div class="field-grid">
+              <label>总 token 预算
+                <input id="max-tokens" type="number" min="200" max="500000" step="100" value="60000" />
+              </label>
+              <label>总时长（秒）
+                <input id="max-duration" type="number" min="5" max="3600" step="5" value="600" />
+              </label>
+              <label>最大深度
+                <input id="max-depth" type="number" min="0" max="8" step="1" value="2" />
+              </label>
+              <label>最大并发
+                <input id="max-concurrency" type="number" min="1" max="32" step="1" value="4" />
+              </label>
+              <label>最大 Agent 数
+                <input id="max-agents" type="number" min="1" max="100" step="1" value="20" />
+              </label>
+              <label>单 Agent 步数
+                <input id="max-steps" type="number" min="1" max="30" step="1" value="8" />
+              </label>
+            </div>
+            <p class="hint">运行中修改会实时生效；总预算到达 85% 后停止继续派生，并保留收尾空间。</p>
+          </section>
+
+          <section class="control-section fail-section">
+            <label class="switch-row">
+              <input id="fail-next" type="checkbox" />
+              <span class="switch"><span></span></span>
+              <span>让下一个子 Agent 失败</span>
+            </label>
+            <p class="hint">一次性故障注入。下一个通过预算/去重检查的子 Agent 会立即失败，主 Agent 应感知并降级重试。</p>
+          </section>
+
+          <div id="notice" class="notice" hidden></div>
+
+          <section class="control-section compact">
+            <h2>状态图例</h2>
+            <div class="legend">
+              <span><i class="legend-dot queued"></i>排队</span>
+              <span><i class="legend-dot running"></i>执行</span>
+              <span><i class="legend-dot waiting"></i>等待</span>
+              <span><i class="legend-dot completed"></i>完成</span>
+              <span><i class="legend-dot failed"></i>失败</span>
+              <span><i class="legend-dot budget_exhausted"></i>预算</span>
+            </div>
+          </section>
         </aside>
+
         <section class="panel stage">
           <div class="stage-head">
             <div>
               <h2>Agent 派发树</h2>
-              <p class="muted">每个节点将显示角色、状态与 token 用量。</p>
+              <p id="stage-subtitle" class="muted">提交任务后，树形图会随 SSE 事件逐步展开。点击节点查看独立上下文。</p>
             </div>
-            <span class="pill pill-muted">尚未运行</span>
+            <div class="stage-meta">
+              <span id="agent-count" class="pill pill-muted">0 agents</span>
+              <span id="peak-concurrency" class="pill pill-muted">peak 0</span>
+            </div>
           </div>
-          <div class="tree-empty">
-            <div class="tree-empty-icon">⌁</div>
-            <h3>还没有 Agent</h3>
-            <p>启动任务后，派发关系会在这里逐步展开。</p>
+          <div id="tree-wrap" class="tree-wrap">
+            <svg id="tree" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agent 派发树"></svg>
+          </div>
+          <div id="final-panel" class="final-panel" hidden>
+            <div class="final-head">
+              <h2>最终交付</h2>
+              <span id="final-meta" class="muted"></span>
+            </div>
+            <pre id="final-text" class="final-text"></pre>
+          </div>
+          <div class="event-strip">
+            <span class="event-dot"></span>
+            <span id="last-event">等待任务事件</span>
+            <span id="clock" class="clock">—</span>
           </div>
         </section>
-        <aside class="panel details">
-          <h2>Agent 详情</h2>
-          <p class="muted">点击树节点查看该 Agent 独立上下文中的完整对话。</p>
-          <div class="empty-slot">未选择节点</div>
+
+        <aside class="panel detail-panel">
+          <div id="detail" class="detail"></div>
         </aside>
       </main>
-      <footer class="footer">
-        <span>健康检查 <code>/health</code></span>
-        <span>事件流 <code>/api/stream</code></span>
-        <span id="clock">—</span>
-      </footer>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
