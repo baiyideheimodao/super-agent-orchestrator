@@ -83,7 +83,7 @@ func mockShowrunner(req ChatRequest, step int) ChatResponse {
 
 	hasSpawn := hasTool(req.Tools, "spawn_agent")
 	if !hasSpawn {
-		return finalText("已基于现有结果完成任务。")
+		return finalText(singleAgentPlan())
 	}
 
 	// Hard budget/limit failures cannot be recovered by retrying. Return a
@@ -224,6 +224,25 @@ func writerArtifact(rangeLabel string) string {
 		lines = []string{"分集内容占位"}
 	}
 	return "分集大纲 " + rangeLabel + "：\n- " + strings.Join(lines, "\n- ")
+}
+
+func singleAgentPlan() string {
+	return "《回声》单 Agent 基线方案\n\n" +
+		"核心谜题：女主林未每晚 23:47 收到七天后的监控，画面中她正在处理一具尸体，而死者尚未出现。\n" +
+		"人物：林未（记忆修复师）、顾沉（前夫/监控工程师）、周岚（失踪者姐姐）、陆鸣（刑警搭档）。\n" +
+		"十集速览：\n" +
+		"EP01 未来录像出现，林未拖黑色行李箱。\n" +
+		"EP02 三位嫌疑人给出矛盾证词，录像缺失 12 秒。\n" +
+		"EP03 旧居民楼声控灯熄灭，林未找到红伞。\n" +
+		"EP04 顾沉称七天后死的不是林未，集装箱却是空的。\n" +
+		"EP05 旧案卷宗显示失踪者周雨与录像尸体衣着一致。\n" +
+		"EP06 林未的录音里出现第三个人呼吸声。\n" +
+		"EP07 第一段录像是伪造的，摄像机早已报废。\n" +
+		"EP08 周岚承认试探林未，目标是逼出旧案目击者。\n" +
+		"EP09 林未确认自己改过证词，红伞指向陆鸣。\n" +
+		"EP10 真相：林未保护的是唯一证人周雨，顾沉以录像引真凶现身；双重反转让 23:47 再次响起。\n" +
+		"营销：以「你收到的未来录像里，凶手就是你自己」为卖点，首日连更三集，第 4 集卡点停更，大结局前释出无删减监控互动页。\n" +
+		"自查：谜题、人物、十集钩子与营销均覆盖；未经过独立审稿角色复核，时间线细节需人工二次校对。"
 }
 
 func baseTask(role string) string {
