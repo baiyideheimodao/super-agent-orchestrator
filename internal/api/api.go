@@ -1,12 +1,16 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/baiyideheimodao/super-agent-orchestrator/internal/config"
+	"github.com/baiyideheimodao/super-agent-orchestrator/internal/stream"
 )
 
 // Server owns all HTTP routes. Feature-specific fields are added by the
@@ -16,6 +20,7 @@ type Server struct {
 	mux       *http.ServeMux
 	startedAt time.Time
 	log       *slog.Logger
+	hub       *stream.Hub
 }
 
 func New(cfg config.Config, logger *slog.Logger) *Server {
@@ -27,6 +32,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 		mux:       http.NewServeMux(),
 		startedAt: time.Now().UTC(),
 		log:       logger,
+		hub:       stream.NewHub(),
 	}
 	s.routes()
 	return s
@@ -35,6 +41,7 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
+	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -48,11 +55,93 @@ func (s *Server) routes() {
 	})
 }
 
+// Start begins the global one-second SSE ticker. It is safe to call once per
+// process; the supplied context controls shutdown.
+func (s *Server) Start(ctx context.Context) {
+	s.hub.Start(ctx, time.Second)
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Last-Event-ID")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	s.mux.ServeHTTP(w, r)
 	s.log.Debug("request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start).String())
+}
+
+func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	afterSeq := int64(0)
+	if raw := r.Header.Get("Last-Event-ID"); raw != "" {
+		if parsed, err := strconv.ParseInt(raw, 10, 64); err == nil && parsed >= 0 {
+			afterSeq = parsed
+		}
+	}
+
+	ch, replay, unsubscribe := s.hub.Subscribe(afterSeq)
+	defer unsubscribe()
+
+	fmt.Fprint(w, "retry: 2000\n\n")
+	writeRawEvent(w, "", "hello", map[string]any{
+		"seq":             s.hub.CurrentSeq(),
+		"interval_ms":     1000,
+		"replayed_events": len(replay),
+	})
+	flusher.Flush()
+
+	for _, event := range replay {
+		if err := writeStreamEvent(w, event); err != nil {
+			return
+		}
+	}
+	flusher.Flush()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case event, open := <-ch:
+			if !open {
+				return
+			}
+			if err := writeStreamEvent(w, event); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}
+}
+
+func writeStreamEvent(w http.ResponseWriter, event stream.Event) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", event.Seq, event.Type, payload)
+	return err
+}
+
+func writeRawEvent(w http.ResponseWriter, id, eventType string, payload any) {
+	body, _ := json.Marshal(payload)
+	if id != "" {
+		fmt.Fprintf(w, "id: %s\n", id)
+	}
+	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, body)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
