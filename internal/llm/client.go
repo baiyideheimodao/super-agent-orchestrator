@@ -33,6 +33,15 @@ func NewClient(cfg config.LLMConfig, record func(CallRecord)) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewClientWithProvider(provider, cfg, record)
+}
+
+// NewClientWithProvider lets tests and embedders supply a custom Provider while
+// retaining the concurrency, timeout and accounting wrapper.
+func NewClientWithProvider(provider Provider, cfg config.LLMConfig, record func(CallRecord)) (*Client, error) {
+	if provider == nil {
+		return nil, errors.New("LLM provider is required")
+	}
 	if cfg.MaxConcurrency < 1 {
 		return nil, errors.New("LLM max concurrency must be >= 1")
 	}
