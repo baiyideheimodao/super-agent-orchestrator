@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Super-Agent 编排器</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">SA</span>
+          <div>
+            <h1>Super-Agent</h1>
+            <p>运行时多智能体编排</p>
+          </div>
+        </div>
+        <div class="live-meta">
+          <span id="health" class="pill pill-muted">连接后端…</span>
+          <span class="pill"><span class="dot" id="sse-dot"></span> SSE <b id="sse-seq">—</b></span>
+          <span class="pill" id="sse-state">连接中</span>
+        </div>
+      </header>
+      <main class="layout">
+        <aside class="panel controls">
+          <h2>调试面板</h2>
+          <p class="muted">编排器接入后，这里会提供预算、深度、并发、失败注入和取消控制。</p>
+          <div class="empty-slot">等待编排器 API</div>
+        </aside>
+        <section class="panel stage">
+          <div class="stage-head">
+            <div>
+              <h2>Agent 派发树</h2>
+              <p class="muted">每个节点将显示角色、状态与 token 用量。</p>
+            </div>
+            <span class="pill pill-muted">尚未运行</span>
+          </div>
+          <div class="tree-empty">
+            <div class="tree-empty-icon">⌁</div>
+            <h3>还没有 Agent</h3>
+            <p>启动任务后，派发关系会在这里逐步展开。</p>
+          </div>
+        </section>
+        <aside class="panel details">
+          <h2>Agent 详情</h2>
+          <p class="muted">点击树节点查看该 Agent 独立上下文中的完整对话。</p>
+          <div class="empty-slot">未选择节点</div>
+        </aside>
+      </main>
+      <footer class="footer">
+        <span>健康检查 <code>/health</code></span>
+        <span>事件流 <code>/api/stream</code></span>
+        <span id="clock">—</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
