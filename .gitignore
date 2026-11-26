@@ -24,3 +24,5 @@ coverage.out
 *.test
 
 .cache/
+
+.pnpm-store/
