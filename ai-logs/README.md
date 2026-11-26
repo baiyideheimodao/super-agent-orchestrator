@@ -12,10 +12,10 @@
 
 | 文件 | 内容 |
 | :--- | :--- |
-| `session-eb7670b4-1c88-43b8-8316-334f088aa6c6.jsonl` | 从 DSH `.jsonl.zstd` 解压出的完整会话（1,310 条记录），所有 user/assistant 消息、reasoning、工具调用与结果按 `seq` 顺序保留 |
+| `session-eb7670b4-1c88-43b8-8316-334f088aa6c6.jsonl` | 从 DSH `.jsonl.zstd` 解压出的完整会话（1,400+ 条记录），所有 user/assistant 消息、reasoning、工具调用与结果按 `seq` 顺序保留 |
 | `raw/session-eb7670b4-1c88-43b8-8316-334f088aa6c6.jsonl.zstd` | DSH 原始压缩文件副本，未修改 |
 | `session-...md` | 可读导出：按时间顺序展开每条用户提示、模型回复（含完整 reasoning）和工具调用/结果 |
-| `trace-session-...jsonl` | 190 次工具调用的结构化 trace：turn、step、call_id、工具名、参数、结果、错误标志、耗时 |
+| `trace-session-...jsonl` | 196+ 次工具调用的结构化 trace：turn、step、call_id、工具名、参数、结果、错误标志、耗时 |
 | `usage-heatmap/usage-heatmap.png` | 最近 3 个月（2026-08-24 至 2026-11-26）的每日会话数/消息数/Token 热力图 |
 | `usage-heatmap/daily-usage.csv` | 热力图原始日粒度数据 |
 

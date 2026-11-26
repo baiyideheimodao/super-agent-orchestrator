@@ -487,7 +487,7 @@ mock 在该模式输出完整的 10 集速览、人物与营销基线。
 ## 13. AI 会话记录与用量热力图
 
 - 完整 DSH 会话：`ai-logs/session-*.jsonl`（原始解压 JSONL）与可读 Markdown；
-- Tool trace：`ai-logs/trace-*.jsonl`（162+ 次工具调用的 name/args/result）；
+- Tool trace：`ai-logs/trace-*.jsonl`（196+ 次工具调用的 name/args/result）；
 - 导出方式、对应提交、脱敏说明：见 [`ai-logs/README.md`](ai-logs/README.md)。
 
 **最近 3 个月用量热力图**（会话数 / 消息数 / Token，按天）：
@@ -522,7 +522,7 @@ session 记录，因此显示为 0，不做补数；原始统计见
 | 最终 commit hash | 待填（提交后更新） |
 | 启动命令 | `make dev` |
 | 使用的 AI 工具和模型 | DeepSeek Harness / `deepseek-flash` |
-| 总用时（小时） | 待填 |
+| 总用时（小时） | 约 0.7 |
 
 ### 提交前自查
 
