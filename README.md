@@ -519,7 +519,7 @@ session 记录，因此显示为 0，不做补数；原始统计见
 | 项目 | 填写 |
 | :--- | :--- |
 | 公开的 GitHub 仓库链接 | https://github.com/baiyideheimodao/super-agent-orchestrator |
-| 最终 commit hash | 待填（提交后更新） |
+| 最终 commit hash | `a3224ada27118455e214f6de99dbf7c9b80e19f9`（本表所在提交仅刷新 AI 日志） |
 | 启动命令 | `make dev` |
 | 使用的 AI 工具和模型 | DeepSeek Harness / `deepseek-flash` |
 | 总用时（小时） | 约 0.7 |
@@ -531,4 +531,4 @@ session 记录，因此显示为 0，不做补数；原始统计见
 - [x] 连续有意义提交，至少 8 次，无 force push/squash/rebase
 - [x] `ai-logs/` 完整会话与 trace，含 README
 - [x] 用量热力图覆盖最近 3 个月目录，并粘贴到 README
-- [ ] 截止前填写最终 commit hash 与总用时
+- [x] 截止前填写最终 commit hash 与总用时
