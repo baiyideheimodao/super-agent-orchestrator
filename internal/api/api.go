@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/baiyideheimodao/super-agent-orchestrator/internal/config"
@@ -58,17 +62,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PATCH /api/runs/{id}/settings", s.handleUpdateSettings)
 	s.mux.HandleFunc("POST /api/runs/{id}/fail-next", s.handleFailNext)
 	s.mux.HandleFunc("POST /api/runs/{id}/cancel", s.handleCancel)
-	s.mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"service": "super-agent-orchestrator",
-			"health":  "/health",
-			"version": s.cfg.Version,
-		})
-	})
+	s.mux.HandleFunc("GET /", s.handleRoot)
 }
 
 // Start begins the global one-second SSE ticker. It is safe to call once per
@@ -158,6 +152,36 @@ func writeRawEvent(w http.ResponseWriter, id, eventType string, payload any) {
 		fmt.Fprintf(w, "id: %s\n", id)
 	}
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, body)
+}
+
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	index := filepath.Join(s.cfg.WebDir, "index.html")
+	if r.URL.Path == "/" {
+		if s.cfg.WebDir != "" {
+			if info, err := os.Stat(index); err == nil && !info.IsDir() {
+				http.ServeFile(w, r, index)
+				return
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"service": "super-agent-orchestrator",
+			"health":  "/health",
+			"version": s.cfg.Version,
+		})
+		return
+	}
+	if s.cfg.WebDir != "" {
+		clean := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		full := filepath.Join(s.cfg.WebDir, filepath.FromSlash(clean))
+		if info, err := os.Stat(full); err == nil && !info.IsDir() {
+			if strings.HasPrefix(r.URL.Path, "/assets/") {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
+			http.ServeFile(w, r, full)
+			return
+		}
+	}
+	http.NotFound(w, r)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {

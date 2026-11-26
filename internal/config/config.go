@@ -17,6 +17,7 @@ import (
 type Config struct {
 	Addr    string
 	DataDir string
+	WebDir  string
 	Version string
 
 	LLM     LLMConfig
@@ -52,6 +53,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		Addr:    env("ADDR", ":"+env("PORT", "8080")),
 		DataDir: env("DATA_DIR", "data"),
+		WebDir:  env("WEB_DIR", "web/dist"),
 		Version: env("APP_VERSION", "dev"),
 		LLM: LLMConfig{
 			Provider:          strings.ToLower(env("LLM_PROVIDER", "mock")),

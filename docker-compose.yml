@@ -1,0 +1,25 @@
+services:
+  super-agent:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
+      LLM_MAX_CONCURRENCY: ${LLM_MAX_CONCURRENCY:-4}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-90}
+      LLM_INPUT_USD_PER_MTOK: ${LLM_INPUT_USD_PER_MTOK:-0.27}
+      LLM_OUTPUT_USD_PER_MTOK: ${LLM_OUTPUT_USD_PER_MTOK:-1.10}
+      RUN_MAX_TOKENS: ${RUN_MAX_TOKENS:-60000}
+      RUN_MAX_DURATION_SECONDS: ${RUN_MAX_DURATION_SECONDS:-600}
+      RUN_MAX_DEPTH: ${RUN_MAX_DEPTH:-2}
+      RUN_MAX_CONCURRENCY: ${RUN_MAX_CONCURRENCY:-4}
+      RUN_MAX_AGENTS: ${RUN_MAX_AGENTS:-20}
+      AGENT_MAX_STEPS: ${AGENT_MAX_STEPS:-8}
+    volumes:
+      - ./data:/app/data
+    init: true
+    restart: unless-stopped

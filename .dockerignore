@@ -1,0 +1,14 @@
+.git
+.gitignore
+.cache
+.pnpm-store
+data
+bin
+web/node_modules
+web/dist
+.env
+.env.*
+!.env.example
+ai-logs
+*.log
+.DS_Store
